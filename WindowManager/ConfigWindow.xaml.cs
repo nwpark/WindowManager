@@ -13,7 +13,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
-using System.Windows.Shapes;
+using System.Drawing;
 using System.Windows.Forms;
 using System.Threading;
 
@@ -53,7 +53,11 @@ namespace WindowManager
     {
       InitializeComponent();
 
-      windowPositioner = new WindowPositioner();
+      HashSet<Rectangle> layout1 = new HashSet<Rectangle>();
+      layout1.Add(new Rectangle(0, 0, 960, 1010));
+      layout1.Add(new Rectangle(960, 0, 960, 1010));
+
+      windowPositioner = new WindowPositioner(layout1);
 
       // set this process as windows hook to listen for shift key press
       _hookID = SetHook(_proc);
