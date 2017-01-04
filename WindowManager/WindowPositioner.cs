@@ -43,6 +43,7 @@ namespace WindowManager
     private delegate void ShowWindowDelegate(Rectangle windowPos);
     private delegate void HideWindowDelegate();
 
+    private Keys expectedModifier;
     private Form previewWindow;
     private HashSet<Rectangle> windowPositions;
 
@@ -64,28 +65,29 @@ namespace WindowManager
       return windowPositionerThread != null && windowPositionerThread.IsAlive;
     }
 
-    public void SetActive()
+    public void SetActive(Keys givenModifier)
     {
       if(!IsActive())
       {
+        expectedModifier = givenModifier;
         windowPositionerThread = new Thread(new ThreadStart(this.ControlForegroundWindow));
         windowPositionerThread.Start();
       }
     }
 
-    public void ShowPreview(Rectangle windowPos)
+    private void ShowPreview(Rectangle windowPos)
     {
       MoveWindow(previewWindow.Handle, windowPos.X+10, windowPos.Y+10,
                  windowPos.Width-20, windowPos.Height-20, false);
       previewWindow.Show();
     }
 
-    public void HidePreview()
+    private void HidePreview()
     {
       previewWindow.Hide();
     }
 
-    public void ControlForegroundWindow()
+    private void ControlForegroundWindow()
     {
       Rectangle currentWindowPos;
       Point mousePos;
@@ -93,7 +95,7 @@ namespace WindowManager
       Rect foregroundWindowPos;
       Rectangle windowDraggableArea;
 
-      while (Control.ModifierKeys == Keys.Shift)
+      while (Control.ModifierKeys == expectedModifier)
       {
         if (Control.MouseButtons == MouseButtons.Left)
         {
@@ -109,7 +111,7 @@ namespace WindowManager
           // check if foreground window is actually being moved
           if (windowDraggableArea.Contains(mousePos))
             while (Control.MouseButtons == MouseButtons.Left
-                          && Control.ModifierKeys == Keys.Shift)
+                          && Control.ModifierKeys == expectedModifier)
             {
               mousePos = Control.MousePosition;
 
@@ -135,7 +137,7 @@ namespace WindowManager
           if (previewWindow.Visible)
             dispatcher.Invoke(new HideWindowDelegate(HidePreview));
 
-          if (!currentWindowPos.IsEmpty && Control.ModifierKeys == Keys.Shift)
+          if (!currentWindowPos.IsEmpty && Control.ModifierKeys == expectedModifier)
             MoveWindow(foregroundWindow, currentWindowPos.X, currentWindowPos.Y,
                        currentWindowPos.Width, currentWindowPos.Height, true);
         }

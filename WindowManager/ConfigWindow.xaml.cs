@@ -36,7 +36,8 @@ namespace WindowManager
     private static int LEFT = 37, RIGHT = 39;
 
     private static WindowPositioner layout1Positioner;
-    
+    private static WindowPositioner layout2Positioner;
+
 
     public MainWindow()
     {
@@ -45,8 +46,14 @@ namespace WindowManager
       HashSet<Rectangle> layout1 = new HashSet<Rectangle>();
       layout1.Add(new Rectangle(0, 0, 960, 1010));
       layout1.Add(new Rectangle(960, 0, 960, 1010));
-
       layout1Positioner = new WindowPositioner(layout1);
+
+      HashSet<Rectangle> layout2 = new HashSet<Rectangle>();
+      layout2.Add(new Rectangle(0, 0, 960, 505));
+      layout2.Add(new Rectangle(960, 0, 960, 505));
+      layout2.Add(new Rectangle(0, 505, 960, 505));
+      layout2.Add(new Rectangle(960, 505, 960, 505));
+      layout2Positioner = new WindowPositioner(layout2);
 
       // set this process as windows hook to listen for shift key press
       _hookID = SetHook(_proc);
@@ -76,8 +83,11 @@ namespace WindowManager
         int vkCode = Marshal.ReadInt32(lParam);
         //Console.WriteLine(((Keys)vkCode).ToString() + ", code: " + vkCode.ToString());
 
-        if(System.Windows.Forms.Control.ModifierKeys == Keys.Shift)
-          layout1Positioner.SetActive();
+        if (Control.ModifierKeys == Keys.Shift)
+          layout1Positioner.SetActive(Keys.Shift);
+
+        if (Control.ModifierKeys == Keys.Control)
+          layout2Positioner.SetActive(Keys.Control);
       }
 
       return CallNextHookEx(_hookID, nCode, wParam, lParam);
