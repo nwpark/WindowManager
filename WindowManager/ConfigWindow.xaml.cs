@@ -1,21 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
 using System.Drawing;
 using System.Windows.Forms;
-using System.Threading;
 
 namespace WindowManager
 {
@@ -46,7 +35,7 @@ namespace WindowManager
     private static IntPtr _hookID = IntPtr.Zero;
     private static int LEFT = 37, RIGHT = 39;
 
-    private static WindowPositioner windowPositioner;
+    private static WindowPositioner layout1Positioner;
     
 
     public MainWindow()
@@ -57,7 +46,7 @@ namespace WindowManager
       layout1.Add(new Rectangle(0, 0, 960, 1010));
       layout1.Add(new Rectangle(960, 0, 960, 1010));
 
-      windowPositioner = new WindowPositioner(layout1);
+      layout1Positioner = new WindowPositioner(layout1);
 
       // set this process as windows hook to listen for shift key press
       _hookID = SetHook(_proc);
@@ -85,10 +74,10 @@ namespace WindowManager
       if (nCode >= 0 && wParam == (IntPtr)WM_KEYDOWN)
       {
         int vkCode = Marshal.ReadInt32(lParam);
-        Console.WriteLine(((Keys)vkCode).ToString() + ", code: " + vkCode.ToString());
+        //Console.WriteLine(((Keys)vkCode).ToString() + ", code: " + vkCode.ToString());
 
-        //if(System.Windows.Forms.Control.ModifierKeys == Keys.Shift)
-          windowPositioner.SetActive();
+        if(System.Windows.Forms.Control.ModifierKeys == Keys.Shift)
+          layout1Positioner.SetActive();
       }
 
       return CallNextHookEx(_hookID, nCode, wParam, lParam);

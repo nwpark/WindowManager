@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Windows.Input;
-using System.Windows.Interop;
 using System.Windows.Threading;
 
 namespace WindowManager
@@ -29,15 +25,25 @@ namespace WindowManager
     [DllImport("user32.dll")]
     static extern bool MoveWindow(IntPtr hwnd, int x, int y, int nWidth, int nHeight, bool bRepaint);
 
+    [DllImport("user32.dll")]
+    static extern bool GetWindowRect(IntPtr hwnd, ref Rect lpRect);
+
+    private struct Rect
+    {
+      public int Left { get; set; }
+      public int Top { get; set; }
+      public int Right { get; set; }
+      public int Bottom { get; set; }
+    }
+
     // seperate thread to control window positioning
     private Thread windowPositionerThread;
     private Dispatcher dispatcher;
 
     private delegate void ShowWindowDelegate(Rectangle windowPos);
     private delegate void HideWindowDelegate();
-    private delegate bool MousePressedDelegate();
 
-    private Form f;
+    private Form previewWindow;
     private HashSet<Rectangle> windowPositions;
 
     public WindowPositioner(HashSet<Rectangle> windowPositions)
@@ -45,15 +51,12 @@ namespace WindowManager
       this.windowPositions = windowPositions;
       dispatcher = Dispatcher.CurrentDispatcher;
 
-      f = new Form();
-      f.BackColor = Color.LightBlue;
-      f.FormBorderStyle = FormBorderStyle.None;
-      f.Bounds = new Rectangle(10, 10, 950, 1000);
-      f.TopMost = true;
-      f.ShowInTaskbar = false;
-      f.Opacity = 0.3;
-      f.StartPosition = FormStartPosition.Manual;
-      f.Location = new Point(10, 10);
+      previewWindow = new Form();
+      previewWindow.BackColor = Color.LightBlue;
+      previewWindow.FormBorderStyle = FormBorderStyle.None;
+      previewWindow.TopMost = true;
+      previewWindow.ShowInTaskbar = false;
+      previewWindow.Opacity = 0.2;
     }
 
     public bool IsActive()
@@ -70,66 +73,75 @@ namespace WindowManager
       }
     }
 
-    public void ShowWindow(Rectangle windowPos)
+    public void ShowPreview(Rectangle windowPos)
     {
-      MoveWindow(f.Handle, windowPos.X+10, windowPos.Y+10,
+      MoveWindow(previewWindow.Handle, windowPos.X+10, windowPos.Y+10,
                  windowPos.Width-20, windowPos.Height-20, false);
-      f.Show();
+      previewWindow.Show();
     }
 
-    public void HideWindow()
+    public void HidePreview()
     {
-      f.Hide();
-    }
-
-    private bool MousePressed()
-    {
-      return Mouse.LeftButton == MouseButtonState.Pressed;
+      previewWindow.Hide();
     }
 
     public void ControlForegroundWindow()
     {
-      IntPtr foregroundWindow = GetForegroundWindow();
-      
-      Rectangle currentWindowPos = new Rectangle(0, 0, 0, 0);
-      Point mousePos = Control.MousePosition;
+      Rectangle currentWindowPos;
+      Point mousePos;
+      IntPtr foregroundWindow;
+      Rect foregroundWindowPos;
+      Rectangle windowDraggableArea;
 
       while (Control.ModifierKeys == Keys.Shift)
       {
-        while(Control.MouseButtons == MouseButtons.Left
-                       && Control.ModifierKeys == Keys.Shift)
+        if (Control.MouseButtons == MouseButtons.Left)
         {
+          currentWindowPos = new Rectangle(0, 0, 0, 0);
           mousePos = Control.MousePosition;
+          foregroundWindow = GetForegroundWindow();
+          foregroundWindowPos = new Rect();
+          GetWindowRect(foregroundWindow, ref foregroundWindowPos);
+          windowDraggableArea
+            = new Rectangle(foregroundWindowPos.Left, foregroundWindowPos.Top,
+                            foregroundWindowPos.Right - foregroundWindowPos.Left, 30);
 
-          if (!currentWindowPos.Contains(mousePos))
-          {
-            foreach (Rectangle windowPos in windowPositions)
+          // check if foreground window is actually being moved
+          if (windowDraggableArea.Contains(mousePos))
+            while (Control.MouseButtons == MouseButtons.Left
+                          && Control.ModifierKeys == Keys.Shift)
             {
-              if (windowPos.Contains(mousePos))
+              mousePos = Control.MousePosition;
+
+              if (!currentWindowPos.Contains(mousePos))
               {
-                currentWindowPos = windowPos;
-                dispatcher.Invoke(new ShowWindowDelegate(ShowWindow),
-                                  new object[] { currentWindowPos });
-                break;
+                currentWindowPos = new Rectangle(0, 0, 0, 0);
+
+                if (previewWindow.Visible)
+                  dispatcher.Invoke(new HideWindowDelegate(HidePreview));
+
+                foreach (Rectangle windowPos in windowPositions)
+                  if (windowPos.Contains(mousePos))
+                  {
+                    currentWindowPos = windowPos;
+                    dispatcher.Invoke(new ShowWindowDelegate(ShowPreview),
+                                      new object[] { currentWindowPos });
+                    break;
+                  }
               }
-
-              if(f.Visible)
-                dispatcher.Invoke(new HideWindowDelegate(HideWindow));
+              Thread.Sleep(100);
             }
-          }
 
-          Thread.Sleep(100);
+          if (previewWindow.Visible)
+            dispatcher.Invoke(new HideWindowDelegate(HidePreview));
+
+          if (!currentWindowPos.IsEmpty && Control.ModifierKeys == Keys.Shift)
+            MoveWindow(foregroundWindow, currentWindowPos.X, currentWindowPos.Y,
+                       currentWindowPos.Width, currentWindowPos.Height, true);
         }
-
-        if (f.Visible)
-          dispatcher.Invoke(new HideWindowDelegate(HideWindow));
-
         Thread.Sleep(100);
       }
-
-      dispatcher.Invoke(new HideWindowDelegate(HideWindow));
-      Console.WriteLine("Exiting");
-    }
+    } // ControlForegroundWindow
 
   }
 }
