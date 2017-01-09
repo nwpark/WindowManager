@@ -45,8 +45,8 @@ namespace WindowManager
       InitializeComponent();
 
       HashSet<Rectangle> layout1 = new HashSet<Rectangle>();
-      layout1.Add(new Rectangle(0, 0, 960, 1010));
-      layout1.Add(new Rectangle(960, 0, 960, 1010));
+      layout1.Add(new Rectangle(-7, -1, 970, 1048));
+      layout1.Add(new Rectangle(954, -1, 967, 1048));
       layout1Positioner = new WindowPositioner(layout1);
 
       HashSet<Rectangle> layout2 = new HashSet<Rectangle>();
@@ -102,8 +102,7 @@ namespace WindowManager
     {
       if (nCode >= 0 && MouseMessages.WM_LBUTTONDOWN == (MouseMessages)wParam)
       {
-        MSLLHOOKSTRUCT hookStruct = (MSLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(MSLLHOOKSTRUCT));
-        Console.WriteLine(hookStruct.pt.x + ", " + hookStruct.pt.y);
+        WindowPositioner.CheckForReset();
       }
       return CallNextHookEx(_mouseHookID, nCode, wParam, lParam);
     }

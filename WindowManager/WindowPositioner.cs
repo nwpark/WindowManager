@@ -46,6 +46,8 @@ namespace WindowManager
     private Keys expectedModifier;
     private Form previewWindow;
     private HashSet<Rectangle> windowPositions;
+    private static Dictionary<IntPtr, Rect> windowResetPositions
+      = new Dictionary<IntPtr, Rect>();
 
     public WindowPositioner(HashSet<Rectangle> windowPositions)
     {
@@ -89,7 +91,7 @@ namespace WindowManager
 
     private void ControlForegroundWindow()
     {
-      Rectangle currentWindowPos;
+      Rectangle currentPreviewPos;
       Point mousePos;
       IntPtr foregroundWindow;
       Rect foregroundWindowPos;
@@ -99,14 +101,12 @@ namespace WindowManager
       {
         if (Control.MouseButtons == MouseButtons.Left)
         {
-          currentWindowPos = new Rectangle(0, 0, 0, 0);
+          currentPreviewPos = new Rectangle(0, 0, 0, 0);
           mousePos = Control.MousePosition;
           foregroundWindow = GetForegroundWindow();
           foregroundWindowPos = new Rect();
           GetWindowRect(foregroundWindow, ref foregroundWindowPos);
-          windowDraggableArea
-            = new Rectangle(foregroundWindowPos.Left, foregroundWindowPos.Top,
-                            foregroundWindowPos.Right - foregroundWindowPos.Left, 30);
+          windowDraggableArea = GetDraggableArea(foregroundWindow);
 
           // check if foreground window is actually being moved
           if (windowDraggableArea.Contains(mousePos))
@@ -115,9 +115,9 @@ namespace WindowManager
             {
               mousePos = Control.MousePosition;
 
-              if (!currentWindowPos.Contains(mousePos))
+              if (!currentPreviewPos.Contains(mousePos))
               {
-                currentWindowPos = new Rectangle(0, 0, 0, 0);
+                currentPreviewPos = new Rectangle(0, 0, 0, 0);
 
                 if (previewWindow.Visible)
                   dispatcher.Invoke(new HideWindowDelegate(HidePreview));
@@ -125,25 +125,62 @@ namespace WindowManager
                 foreach (Rectangle windowPos in windowPositions)
                   if (windowPos.Contains(mousePos))
                   {
-                    currentWindowPos = windowPos;
+                    currentPreviewPos = windowPos;
                     dispatcher.Invoke(new ShowWindowDelegate(ShowPreview),
-                                      new object[] { currentWindowPos });
+                                      new object[] { currentPreviewPos });
                     break;
                   }
               }
               Thread.Sleep(100);
-            }
+            } // while
 
           if (previewWindow.Visible)
             dispatcher.Invoke(new HideWindowDelegate(HidePreview));
 
-          if (!currentWindowPos.IsEmpty && Control.ModifierKeys == expectedModifier)
-            MoveWindow(foregroundWindow, currentWindowPos.X, currentWindowPos.Y,
-                       currentWindowPos.Width, currentWindowPos.Height, true);
-        }
+          if (!currentPreviewPos.IsEmpty && Control.ModifierKeys == expectedModifier)
+          {
+            windowResetPositions.Add(foregroundWindow, foregroundWindowPos);
+            MoveWindow(foregroundWindow, currentPreviewPos.X, currentPreviewPos.Y,
+                       currentPreviewPos.Width, currentPreviewPos.Height, true);
+          }
+        } // if (Control.MouseButtons == MouseButtons.Left)
+
         Thread.Sleep(100);
-      }
+      } // while (Control.ModifierKeys == expectedModifier)
     } // ControlForegroundWindow
+
+    public static void CheckForReset()
+    {
+      IntPtr foregroundWindow = GetForegroundWindow();
+      Rectangle windowDraggableArea = GetDraggableArea(foregroundWindow);
+      if (windowResetPositions.ContainsKey(foregroundWindow)
+                && windowDraggableArea.Contains(Control.MousePosition))
+      {
+        Rect foregroundWindowPos = new Rect();
+        GetWindowRect(foregroundWindow, ref foregroundWindowPos);
+
+        Rect windowResetPos = windowResetPositions[foregroundWindow];
+        double relativeMouseX = (double)(Control.MousePosition.X - windowDraggableArea.Left)
+                                  / windowDraggableArea.Width;
+        int newWindowWidth = windowResetPos.Right - windowResetPos.Left;
+        int newWindowHeight = windowResetPos.Bottom - windowResetPos.Top;
+        int newWindowX = Control.MousePosition.X - (int)(relativeMouseX * newWindowWidth);
+
+        MoveWindow(foregroundWindow, newWindowX, foregroundWindowPos.Top,
+                   newWindowWidth, newWindowHeight, true);
+
+        windowResetPositions.Remove(foregroundWindow);
+      }
+    }
+
+    private static Rectangle GetDraggableArea(IntPtr window)
+    {
+      Rect windowPos = new Rect();
+      GetWindowRect(window, ref windowPos);
+      
+      return new Rectangle(windowPos.Left, windowPos.Top,
+                           windowPos.Right - windowPos.Left, 30);
+    }
 
   }
 }
