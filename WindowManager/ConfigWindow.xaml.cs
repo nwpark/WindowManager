@@ -14,7 +14,7 @@ namespace WindowManager
     // used for hotkeys without focus:
 
     [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-    private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
+    private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelPeripheralProc lpfn, IntPtr hMod, uint dwThreadId);
 
     [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -26,18 +26,19 @@ namespace WindowManager
     [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
     private static extern IntPtr GetModuleHandle(string lpModuleName);
 
-    private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
+    private delegate IntPtr LowLevelPeripheralProc(int nCode, IntPtr wParam, IntPtr lParam);
 
     // vars
     private const int WH_KEYBOARD_LL = 13;
     private const int WM_KEYDOWN = 0x0100;
-    private static LowLevelKeyboardProc _proc = HookCallback;
-    private static IntPtr _hookID = IntPtr.Zero;
-    private static int LEFT = 37, RIGHT = 39;
+    private const int WH_MOUSE_LL = 14;
+    private static LowLevelPeripheralProc _keyboardProc = KeyboardHookCallback;
+    private static LowLevelPeripheralProc _mouseProc = MouseHookCallback;
+    private static IntPtr _keyboardHookID = IntPtr.Zero;
+    private static IntPtr _mouseHookID = IntPtr.Zero;
 
     private static WindowPositioner layout1Positioner;
     private static WindowPositioner layout2Positioner;
-
 
     public MainWindow()
     {
@@ -55,10 +56,14 @@ namespace WindowManager
       layout2.Add(new Rectangle(960, 505, 960, 505));
       layout2Positioner = new WindowPositioner(layout2);
 
-      // set this process as windows hook to listen for shift key press
-      _hookID = SetHook(_proc);
+      // set hook to listen for shift key press
+      _keyboardHookID = SetHook(WH_KEYBOARD_LL, _keyboardProc);
 
-      //UnhookWindowsHookEx(_hookID);
+      // set hook to listen for mouse button press
+      _mouseHookID = SetHook(WH_MOUSE_LL, _mouseProc);
+
+      //UnhookWindowsHookEx(_keyboardHookID);
+      //UnhookWindowsHookEx(_mouseHookID);
     }
 
     private void button_Click(object sender, RoutedEventArgs e)
@@ -66,17 +71,17 @@ namespace WindowManager
       Console.WriteLine("button was clicked");
     }
 
-    private static IntPtr SetHook(LowLevelKeyboardProc proc)
+    private static IntPtr SetHook(int peripheral, LowLevelPeripheralProc proc)
     {
       using (Process curProcess = Process.GetCurrentProcess())
       using (ProcessModule curModule = curProcess.MainModule)
       {
-        return SetWindowsHookEx(WH_KEYBOARD_LL, proc,
+        return SetWindowsHookEx(peripheral, proc,
                                 GetModuleHandle(curModule.ModuleName), 0);
       }
     }
 
-    private static IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+    private static IntPtr KeyboardHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
       if (nCode >= 0 && wParam == (IntPtr)WM_KEYDOWN)
       {
@@ -90,7 +95,44 @@ namespace WindowManager
           layout2Positioner.SetActive(Keys.Control);
       }
 
-      return CallNextHookEx(_hookID, nCode, wParam, lParam);
+      return CallNextHookEx(_keyboardHookID, nCode, wParam, lParam);
+    }
+
+    private static IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+    {
+      if (nCode >= 0 && MouseMessages.WM_LBUTTONDOWN == (MouseMessages)wParam)
+      {
+        MSLLHOOKSTRUCT hookStruct = (MSLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(MSLLHOOKSTRUCT));
+        Console.WriteLine(hookStruct.pt.x + ", " + hookStruct.pt.y);
+      }
+      return CallNextHookEx(_mouseHookID, nCode, wParam, lParam);
+    }
+
+    private enum MouseMessages
+    {
+      WM_LBUTTONDOWN = 0x0201,
+      WM_LBUTTONUP = 0x0202,
+      WM_MOUSEMOVE = 0x0200,
+      WM_MOUSEWHEEL = 0x020A,
+      WM_RBUTTONDOWN = 0x0204,
+      WM_RBUTTONUP = 0x0205
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT
+    {
+      public int x;
+      public int y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MSLLHOOKSTRUCT
+    {
+      public POINT pt;
+      public uint mouseData;
+      public uint flags;
+      public uint time;
+      public IntPtr dwExtraInfo;
     }
   }
 }
