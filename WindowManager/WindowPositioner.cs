@@ -28,22 +28,10 @@ namespace WindowManager
     [DllImport("user32.dll")]
     static extern bool GetWindowRect(IntPtr hwnd, ref Rect lpRect);
 
-    private struct Rect
-    {
-      public int Left { get; set; }
-      public int Top { get; set; }
-      public int Right { get; set; }
-      public int Bottom { get; set; }
-    }
-
-    // seperate thread to control window positioning
-    private Thread windowPositionerThread;
-    private Dispatcher dispatcher;
-
     private delegate void ShowWindowDelegate(Rectangle windowPos);
     private delegate void HideWindowDelegate();
 
-    private Keys expectedModifier;
+    private Dispatcher dispatcher;
     private Form previewWindow;
     private HashSet<Rectangle> windowPositions;
     private static Dictionary<IntPtr, Rect> windowResetPositions
@@ -62,34 +50,7 @@ namespace WindowManager
       previewWindow.Opacity = 0.2;
     }
 
-    public bool IsActive()
-    {
-      return windowPositionerThread != null && windowPositionerThread.IsAlive;
-    }
-
-    public void SetActive(Keys givenModifier)
-    {
-      if(!IsActive())
-      {
-        expectedModifier = givenModifier;
-        windowPositionerThread = new Thread(new ThreadStart(this.ControlForegroundWindow));
-        windowPositionerThread.Start();
-      }
-    }
-
-    private void ShowPreview(Rectangle windowPos)
-    {
-      MoveWindow(previewWindow.Handle, windowPos.X+10, windowPos.Y+10,
-                 windowPos.Width-20, windowPos.Height-20, false);
-      previewWindow.Show();
-    }
-
-    private void HidePreview()
-    {
-      previewWindow.Hide();
-    }
-
-    private void ControlForegroundWindow()
+    public void ControlForegroundWindow(Keys givenModifier)
     {
       Rectangle currentPreviewPos;
       Point mousePos;
@@ -97,7 +58,7 @@ namespace WindowManager
       Rect foregroundWindowPos;
       Rectangle windowDraggableArea;
 
-      while (Control.ModifierKeys == expectedModifier)
+      while (Control.ModifierKeys == givenModifier)
       {
         if (Control.MouseButtons == MouseButtons.Left)
         {
@@ -111,7 +72,7 @@ namespace WindowManager
           // check if foreground window is actually being moved
           if (windowDraggableArea.Contains(mousePos))
             while (Control.MouseButtons == MouseButtons.Left
-                          && Control.ModifierKeys == expectedModifier)
+                          && Control.ModifierKeys == givenModifier)
             {
               mousePos = Control.MousePosition;
 
@@ -137,7 +98,7 @@ namespace WindowManager
           if (previewWindow.Visible)
             dispatcher.Invoke(new HideWindowDelegate(HidePreview));
 
-          if (!currentPreviewPos.IsEmpty && Control.ModifierKeys == expectedModifier)
+          if (!currentPreviewPos.IsEmpty && Control.ModifierKeys == givenModifier)
           {
             windowResetPositions.Add(foregroundWindow, foregroundWindowPos);
             MoveWindow(foregroundWindow, currentPreviewPos.X, currentPreviewPos.Y,
@@ -146,7 +107,7 @@ namespace WindowManager
         } // if (Control.MouseButtons == MouseButtons.Left)
 
         Thread.Sleep(100);
-      } // while (Control.ModifierKeys == expectedModifier)
+      } // while (Control.ModifierKeys == givenModifier)
     } // ControlForegroundWindow
 
     public static void CheckForReset()
@@ -180,6 +141,26 @@ namespace WindowManager
       
       return new Rectangle(windowPos.Left, windowPos.Top,
                            windowPos.Right - windowPos.Left, 30);
+    }
+
+    private void ShowPreview(Rectangle windowPos)
+    {
+      MoveWindow(previewWindow.Handle, windowPos.X + 10, windowPos.Y + 10,
+                 windowPos.Width - 20, windowPos.Height - 20, false);
+      previewWindow.Show();
+    }
+
+    private void HidePreview()
+    {
+      previewWindow.Hide();
+    }
+
+    private struct Rect
+    {
+      public int Left { get; set; }
+      public int Top { get; set; }
+      public int Right { get; set; }
+      public int Bottom { get; set; }
     }
 
   }

@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Drawing;
 using System.Windows.Forms;
+using System.Threading;
 
 namespace WindowManager
 {
@@ -32,43 +33,21 @@ namespace WindowManager
     private const int WH_KEYBOARD_LL = 13;
     private const int WM_KEYDOWN = 0x0100;
     private const int WH_MOUSE_LL = 14;
-    private static LowLevelPeripheralProc _keyboardProc = KeyboardHookCallback;
     private static LowLevelPeripheralProc _mouseProc = MouseHookCallback;
     private static IntPtr _keyboardHookID = IntPtr.Zero;
     private static IntPtr _mouseHookID = IntPtr.Zero;
 
-    private static WindowPositioner layout1Positioner;
-    private static WindowPositioner layout2Positioner;
+    private static WindowPositionManager windowPositionManager;
 
     public MainWindow()
     {
       InitializeComponent();
 
-      int correctionOffset = 7;
-      int correctionWidth = correctionOffset * 2;
-
-      HashSet<Rectangle> layout1 = new HashSet<Rectangle>();
-      //layout1.Add(new Rectangle(-7, -1, 970, 1048));
-      //layout1.Add(new Rectangle(954, -1, 967, 1048));
-      layout1.Add(new Rectangle(0 - correctionOffset, 0, 1147 + correctionWidth, 1410));
-      layout1.Add(new Rectangle(1147 - correctionOffset, 0, 1146 + correctionWidth, 1410));
-      layout1.Add(new Rectangle(2293 - correctionOffset, 0, 1147 + correctionWidth, 1410));
-      layout1Positioner = new WindowPositioner(layout1);
-
-      HashSet<Rectangle> layout2 = new HashSet<Rectangle>();
-      layout2.Add(new Rectangle(0, 0, 960, 505));
-      layout2.Add(new Rectangle(960, 0, 960, 505));
-      layout2.Add(new Rectangle(0, 505, 960, 505));
-      layout2.Add(new Rectangle(960, 505, 960, 505));
-      layout2Positioner = new WindowPositioner(layout2);
-
-      // set hook to listen for shift key press
-      _keyboardHookID = SetHook(WH_KEYBOARD_LL, _keyboardProc);
+      windowPositionManager = new WindowPositionManager();
 
       // set hook to listen for mouse button press
       _mouseHookID = SetHook(WH_MOUSE_LL, _mouseProc);
-
-      //UnhookWindowsHookEx(_keyboardHookID);
+      
       //UnhookWindowsHookEx(_mouseHookID);
     }
 
@@ -87,28 +66,14 @@ namespace WindowManager
       }
     }
 
-    private static IntPtr KeyboardHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
-    {
-      if (nCode >= 0 && wParam == (IntPtr)WM_KEYDOWN)
-      {
-        int vkCode = Marshal.ReadInt32(lParam);
-        //Console.WriteLine(((Keys)vkCode).ToString() + ", code: " + vkCode.ToString());
-
-        if (Control.ModifierKeys == Keys.Shift)
-          layout1Positioner.SetActive(Keys.Shift);
-
-        if (Control.ModifierKeys == Keys.Control)
-          layout2Positioner.SetActive(Keys.Control);
-      }
-
-      return CallNextHookEx(_keyboardHookID, nCode, wParam, lParam);
-    }
-
     private static IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
       if (nCode >= 0 && MouseMessages.WM_LBUTTONDOWN == (MouseMessages)wParam)
       {
-        WindowPositioner.CheckForReset();
+        Thread wpmThread
+          = new Thread(new ThreadStart(windowPositionManager.CheckWindowMovement));
+
+        wpmThread.Start();
       }
       return CallNextHookEx(_mouseHookID, nCode, wParam, lParam);
     }
