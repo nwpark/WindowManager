@@ -44,9 +44,15 @@ namespace WindowManager
     {
       InitializeComponent();
 
+      int correctionOffset = 7;
+      int correctionWidth = correctionOffset * 2;
+
       HashSet<Rectangle> layout1 = new HashSet<Rectangle>();
-      layout1.Add(new Rectangle(-7, -1, 970, 1048));
-      layout1.Add(new Rectangle(954, -1, 967, 1048));
+      //layout1.Add(new Rectangle(-7, -1, 970, 1048));
+      //layout1.Add(new Rectangle(954, -1, 967, 1048));
+      layout1.Add(new Rectangle(0 - correctionOffset, 0, 1147 + correctionWidth, 1410));
+      layout1.Add(new Rectangle(1147 - correctionOffset, 0, 1146 + correctionWidth, 1410));
+      layout1.Add(new Rectangle(2293 - correctionOffset, 0, 1147 + correctionWidth, 1410));
       layout1Positioner = new WindowPositioner(layout1);
 
       HashSet<Rectangle> layout2 = new HashSet<Rectangle>();
