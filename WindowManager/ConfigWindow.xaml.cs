@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
-using System.Drawing;
-using System.Windows.Forms;
 using System.Threading;
 
 namespace WindowManager

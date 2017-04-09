@@ -13,13 +13,19 @@ namespace WindowManager
     static extern IntPtr GetForegroundWindow();
 
     [DllImport("user32.dll")]
-    static extern bool GetWindowRect(IntPtr hwnd, ref Rect lpRect);
+    static extern bool MoveWindow(IntPtr hwnd, int x, int y, int nWidth, int nHeight, bool bRepaint);
 
-    private static WindowPositioner layout1Positioner;
-    private static WindowPositioner layout2Positioner;
+    private WindowHelper windowHelper;
+
+    private WindowPositioner layout1Positioner;
+    private WindowPositioner layout2Positioner;
+
+    private Dictionary<IntPtr, Rectangle> windowResetPositions;
 
     public WindowPositionManager()
     {
+      windowHelper = new WindowHelper();
+
       int correctionOffset = 7;
       int correctionWidth = correctionOffset * 2;
 
@@ -35,38 +41,52 @@ namespace WindowManager
       layout2.Add(new Rectangle(0, 505, 960, 505));
       layout2.Add(new Rectangle(960, 505, 960, 505));
       layout2Positioner = new WindowPositioner(layout2);
+
+      windowResetPositions = new Dictionary<IntPtr, Rectangle>();
     } // WindowPositionManager
 
+    /*19 388 21 567 
+     1036 2422 2899 6323
+
+     1034 1384 2854 3379*/
     public void CheckWindowMovement()
     {
       if(WindowIsMoving())
       {
-        // TODO: check for window reset
-        
-        while(Control.MouseButtons == MouseButtons.Left)
+        IntPtr foregroundWindow = GetForegroundWindow();
+        if (windowResetPositions.ContainsKey(foregroundWindow))
+          ResetWindowPos(foregroundWindow);
+
+        Rectangle foregroundWindowPos = windowHelper.GetWindowRectangle(foregroundWindow);
+
+        Boolean windowMoved = false;
+
+        while (Control.MouseButtons == MouseButtons.Left)
         {
           switch(Control.ModifierKeys)
           {
             case Keys.Shift:
               Console.WriteLine("shift");
-              layout1Positioner.ControlForegroundWindow(Keys.Shift);
+              windowMoved = layout1Positioner.ControlForegroundWindow(Keys.Shift);
               break;
             case Keys.Control:
               Console.WriteLine("Control");
-              layout2Positioner.ControlForegroundWindow(Keys.Control);
+              windowMoved = layout2Positioner.ControlForegroundWindow(Keys.Control);
               break;
           }
 
           Thread.Sleep(100);
         }
+
+        if (windowMoved)
+          windowResetPositions.Add(foregroundWindow, foregroundWindowPos);
       }
     } // CheckWindowMovement
 
-    private static Boolean WindowIsMoving()
+    private Boolean WindowIsMoving()
     {
       IntPtr foregroundWindow = GetForegroundWindow();
-      Rect initWindowPos = new Rect();
-      GetWindowRect(foregroundWindow, ref initWindowPos);
+      Rectangle initWindowPos = windowHelper.GetWindowRectangle(foregroundWindow);
 
       Point initMousePos = Control.MousePosition;
 
@@ -74,8 +94,7 @@ namespace WindowManager
       {
         if (MouseMoved(initMousePos))
         {
-          Rect windowPos = new Rect();
-          GetWindowRect(foregroundWindow, ref windowPos);
+          Rectangle windowPos = windowHelper.GetWindowRectangle(foregroundWindow);
 
           return !windowPos.Equals(initWindowPos);
         }
@@ -86,19 +105,28 @@ namespace WindowManager
       return false;
     } // WindowIsMoving
 
-    private static Boolean MouseMoved(Point initMousePos)
+    public void ResetWindowPos(IntPtr foregroundWindow)
+    {
+      Rectangle windowRect = windowHelper.GetWindowRectangle(foregroundWindow);
+      Rectangle windowResetPos = windowResetPositions[foregroundWindow];
+
+      double relativeMouseX = (Control.MousePosition.X - windowRect.Left) / windowRect.Width;
+      int newWindowX = Control.MousePosition.X - (int)(relativeMouseX * windowResetPos.Width);
+
+      Console.WriteLine(newWindowX + " " + windowRect.Top + " " + windowResetPos.Width + " " + windowResetPos.Height);
+
+      MoveWindow(foregroundWindow,
+                 newWindowX, windowRect.Top,
+                 windowResetPos.Width, windowResetPos.Height, true);
+      
+      windowResetPositions.Remove(foregroundWindow);
+    }
+
+    private Boolean MouseMoved(Point initMousePos)
     {
       Point difference = Point.Subtract(initMousePos, new Size(Control.MousePosition));
       return Math.Abs(difference.X) > 20 || Math.Abs(difference.Y) > 20;
-    } // MouseMoved
-
-    private struct Rect
-    {
-      public int Left { get; set; }
-      public int Top { get; set; }
-      public int Right { get; set; }
-      public int Bottom { get; set; }
-    } // Rect
+    }
 
   } // class WindowPositionManager
 } // WindowManager
