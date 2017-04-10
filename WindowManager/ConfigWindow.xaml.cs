@@ -24,6 +24,12 @@ namespace WindowManager
     [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
     private static extern IntPtr GetModuleHandle(string lpModuleName);
 
+    [DllImport("user32.dll")]
+    static extern bool MoveWindow(IntPtr hwnd, int x, int y, int nWidth, int nHeight, bool bRepaint);
+
+    [DllImport("user32.dll")]
+    static extern IntPtr GetForegroundWindow();
+
     private delegate IntPtr LowLevelPeripheralProc(int nCode, IntPtr wParam, IntPtr lParam);
 
     // vars
@@ -43,9 +49,23 @@ namespace WindowManager
       windowPositionManager = new WindowPositionManager();
 
       // set hook to listen for mouse button press
-      _mouseHookID = SetHook(WH_MOUSE_LL, _mouseProc);
-      
+      //_mouseHookID = SetHook(WH_MOUSE_LL, _mouseProc);
+
+      Thread wpmThread
+          = new Thread(new ThreadStart(this.Test));
+      wpmThread.Start();
       //UnhookWindowsHookEx(_mouseHookID);
+    }
+
+    public void Test()
+    {
+      while (true)
+      {
+        Console.WriteLine("test");
+        IntPtr foregroundWindow = GetForegroundWindow();
+        MoveWindow(foregroundWindow, 10, 10, 500, 500, true);
+        Thread.Sleep(2000);
+      }
     }
 
     private void button_Click(object sender, RoutedEventArgs e)

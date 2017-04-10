@@ -44,7 +44,7 @@ namespace WindowManager
 
       windowResetPositions = new Dictionary<IntPtr, Rectangle>();
     } // WindowPositionManager
-
+    
     /*19 388 21 567 
      1036 2422 2899 6323
 
