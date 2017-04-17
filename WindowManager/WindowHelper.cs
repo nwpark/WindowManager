@@ -9,10 +9,13 @@ namespace WindowManager
   class WindowHelper
   {
     [DllImport("user32.dll")]
-    static extern bool GetWindowRect(IntPtr hwnd, ref Rect lpRect);
+    public static extern bool GetWindowRect(IntPtr hwnd, ref Rect lpRect);
 
     [DllImport("user32.dll")]
-    static extern bool MoveWindow(IntPtr hwnd, int x, int y, int nWidth, int nHeight, bool bRepaint);
+    public static extern bool MoveWindow(IntPtr hwnd, int x, int y, int nWidth, int nHeight, bool bRepaint);
+
+    [DllImport("user32.dll")]
+    public static extern bool SetForegroundWindow(IntPtr hWnd);
 
     public Rectangle GetWindowRectangle(IntPtr givenWindow)
     {
@@ -36,17 +39,23 @@ namespace WindowManager
 
         while (Control.MouseButtons == MouseButtons.Left)
         {
-          int dx = Control.MousePosition.X - initMousePos.Y;
+          int dx = Control.MousePosition.X - initMousePos.X;
           int dy = Control.MousePosition.Y - initMousePos.Y;
           MoveWindow(givenWindow, windowPosition.X + dx, windowPosition.Y + dy,
                      windowPosition.Width, windowPosition.Height, true);
 
-          Thread.Sleep(100);
+          Thread.Sleep(1);
         }
       }).Start();
     }
 
-    private struct Rect
+    public void DropForegroundWindow()
+    {
+      Form dummyWindow = new Form();
+      SetForegroundWindow(dummyWindow.Handle);
+    }
+
+    public struct Rect
     {
       public int Left { get; set; }
       public int Top { get; set; }

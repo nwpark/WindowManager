@@ -65,11 +65,9 @@ namespace WindowManager
           switch(Control.ModifierKeys)
           {
             case Keys.Shift:
-              Console.WriteLine("shift");
               windowMoved = layout1Positioner.ControlForegroundWindow(Keys.Shift);
               break;
             case Keys.Control:
-              Console.WriteLine("Control");
               windowMoved = layout2Positioner.ControlForegroundWindow(Keys.Control);
               break;
           }
@@ -109,18 +107,16 @@ namespace WindowManager
       Rectangle windowRect = windowHelper.GetWindowRectangle(foregroundWindow);
       Rectangle windowResetPos = windowResetPositions[foregroundWindow];
 
-      double relativeMouseX = (Control.MousePosition.X - windowRect.Left) / windowRect.Width;
+      double relativeMouseX = (Control.MousePosition.X - windowRect.Left) / (double)windowRect.Width;
       int newWindowX = Control.MousePosition.X - (int)(relativeMouseX * windowResetPos.Width);
 
-      Console.WriteLine(newWindowX + " " + windowRect.Top + " " + windowResetPos.Width + " " + windowResetPos.Height);
-
-      SetForegroundWindow(new IntPtr(-1));/*
+      windowHelper.DropForegroundWindow();
       MoveWindow(foregroundWindow,
                  newWindowX, windowRect.Top,
-                 windowResetPos.Width, windowResetPos.Height, true);*/
-      //SetForegroundWindow(foregroundWindow);
+                 windowResetPos.Width, windowResetPos.Height, true);
+      SetForegroundWindow(foregroundWindow);
 
-      //windowHelper.AttachWindowToMouse(foregroundWindow);
+      windowHelper.AttachWindowToMouse(foregroundWindow);
       
       windowResetPositions.Remove(foregroundWindow);
     }

@@ -17,12 +17,6 @@ namespace WindowManager
     static extern IntPtr GetForegroundWindow();
 
     [DllImport("user32.dll")]
-    static extern IntPtr FindWindow(String lpClassName, String lpWindowName);
-
-    [DllImport("user32.dll")]
-    static extern IntPtr GetWindowText(IntPtr hwnd, StringBuilder lpString, int nMaxCount);
-
-    [DllImport("user32.dll")]
     static extern bool MoveWindow(IntPtr hwnd, int x, int y, int nWidth, int nHeight, bool bRepaint);
 
     private delegate void ShowWindowDelegate(Rectangle windowPos);
