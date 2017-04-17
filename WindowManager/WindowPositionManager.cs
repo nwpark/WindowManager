@@ -45,10 +45,6 @@ namespace WindowManager
       windowResetPositions = new Dictionary<IntPtr, Rectangle>();
     } // WindowPositionManager
 
-    /*19 388 21 567 
-     1036 2422 2899 6323
-
-     1034 1384 2854 3379*/
     public void CheckWindowMovement()
     {
       if(WindowIsMoving())
