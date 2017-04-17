@@ -22,38 +22,37 @@ namespace WindowManager
     private delegate void ShowWindowDelegate(Rectangle windowPos);
     private delegate void HideWindowDelegate();
 
+    private Keys modifier;
+
     private Dispatcher dispatcher;
     private Form previewWindow;
     private HashSet<Rectangle> windowPositions;
     private static Dictionary<IntPtr, Rectangle> windowResetPositions
       = new Dictionary<IntPtr, Rectangle>();
 
-    public WindowPositioner(HashSet<Rectangle> windowPositions)
+    public WindowPositioner(HashSet<Rectangle> windowPositions, Keys givenModifier)
     {
       this.windowPositions = windowPositions;
+      this.modifier = givenModifier;
+
       dispatcher = Dispatcher.CurrentDispatcher;
 
-      previewWindow = new Form();
-      previewWindow.BackColor = Color.LightBlue;
-      previewWindow.FormBorderStyle = FormBorderStyle.None;
-      previewWindow.TopMost = true;
-      previewWindow.ShowInTaskbar = false;
-      previewWindow.Opacity = 0.2;
+      InitPreviewWindow();
     }
 
-    public Boolean ControlForegroundWindow(Keys givenModifier)
+    public Boolean ControlForegroundWindow()
     {
       Rectangle currentPreviewPos = new Rectangle(0, 0, 0, 0);
       IntPtr foregroundWindow = GetForegroundWindow();
 
       while (Control.MouseButtons == MouseButtons.Left
-                    && Control.ModifierKeys == givenModifier) {
+                    && Control.ModifierKeys == modifier) {
 
         if (!currentPreviewPos.Contains(Control.MousePosition)) {
           currentPreviewPos = new Rectangle(0, 0, 0, 0);
 
           if (previewWindow.Visible)
-            dispatcher.Invoke(new HideWindowDelegate(HidePreview));
+            HidePreview();
 
           foreach (Rectangle previewPos in windowPositions)
             if (previewPos.Contains(Control.MousePosition)) {
@@ -67,9 +66,9 @@ namespace WindowManager
       }
 
       if (previewWindow.Visible)
-        dispatcher.Invoke(new HideWindowDelegate(HidePreview));
+        HidePreview();
 
-      if (!currentPreviewPos.IsEmpty && Control.ModifierKeys == givenModifier)
+      if (!currentPreviewPos.IsEmpty && Control.ModifierKeys == modifier)
       {
         MoveWindow(foregroundWindow, currentPreviewPos.X, currentPreviewPos.Y,
                     currentPreviewPos.Width, currentPreviewPos.Height, true);
@@ -89,7 +88,17 @@ namespace WindowManager
 
     private void HidePreview()
     {
-      previewWindow.Hide();
+      dispatcher.Invoke(new HideWindowDelegate(previewWindow.Hide));
+    }
+
+    private void InitPreviewWindow()
+    {
+      previewWindow = new Form();
+      previewWindow.BackColor = Color.LightBlue;
+      previewWindow.FormBorderStyle = FormBorderStyle.None;
+      previewWindow.TopMost = true;
+      previewWindow.ShowInTaskbar = false;
+      previewWindow.Opacity = 0.2;
     }
 
   }

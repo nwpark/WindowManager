@@ -36,14 +36,14 @@ namespace WindowManager
       layout1.Add(new Rectangle(0 - correctionOffset, 0, 1147 + correctionWidth, 1410));
       layout1.Add(new Rectangle(1147 - correctionOffset, 0, 1146 + correctionWidth, 1410));
       layout1.Add(new Rectangle(2293 - correctionOffset, 0, 1147 + correctionWidth, 1410));
-      layout1Positioner = new WindowPositioner(layout1);
+      layout1Positioner = new WindowPositioner(layout1, Keys.Shift);
 
       HashSet<Rectangle> layout2 = new HashSet<Rectangle>();
       layout2.Add(new Rectangle(0, 0, 960, 505));
       layout2.Add(new Rectangle(960, 0, 960, 505));
       layout2.Add(new Rectangle(0, 505, 960, 505));
       layout2.Add(new Rectangle(960, 505, 960, 505));
-      layout2Positioner = new WindowPositioner(layout2);
+      layout2Positioner = new WindowPositioner(layout2, Keys.Control);
 
       windowResetPositions = new Dictionary<IntPtr, Rectangle>();
     } // WindowPositionManager
@@ -65,10 +65,10 @@ namespace WindowManager
           switch(Control.ModifierKeys)
           {
             case Keys.Shift:
-              windowMoved = layout1Positioner.ControlForegroundWindow(Keys.Shift);
+              windowMoved = layout1Positioner.ControlForegroundWindow();
               break;
             case Keys.Control:
-              windowMoved = layout2Positioner.ControlForegroundWindow(Keys.Control);
+              windowMoved = layout2Positioner.ControlForegroundWindow();
               break;
           }
 
@@ -93,7 +93,8 @@ namespace WindowManager
         {
           Rectangle windowPos = windowHelper.GetWindowRectangle(foregroundWindow);
 
-          return !windowPos.Equals(initWindowPos);
+          return !windowPos.Equals(initWindowPos) && windowPos.Width == initWindowPos.Width 
+                                                  && windowPos.Height == initWindowPos.Height;
         }
 
         Thread.Sleep(100);
