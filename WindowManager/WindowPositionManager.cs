@@ -15,6 +15,9 @@ namespace WindowManager
     [DllImport("user32.dll")]
     static extern bool MoveWindow(IntPtr hwnd, int x, int y, int nWidth, int nHeight, bool bRepaint);
 
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
     private WindowHelper windowHelper;
 
     private WindowPositioner layout1Positioner;
@@ -111,9 +114,13 @@ namespace WindowManager
 
       Console.WriteLine(newWindowX + " " + windowRect.Top + " " + windowResetPos.Width + " " + windowResetPos.Height);
 
+      SetForegroundWindow(new IntPtr(-1));/*
       MoveWindow(foregroundWindow,
                  newWindowX, windowRect.Top,
-                 windowResetPos.Width, windowResetPos.Height, true);
+                 windowResetPos.Width, windowResetPos.Height, true);*/
+      //SetForegroundWindow(foregroundWindow);
+
+      //windowHelper.AttachWindowToMouse(foregroundWindow);
       
       windowResetPositions.Remove(foregroundWindow);
     }

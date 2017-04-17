@@ -2,6 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Drawing;
 using System.Windows.Forms;
+using System.Threading;
 
 namespace WindowManager
 {
@@ -29,16 +30,20 @@ namespace WindowManager
 
     public void AttachWindowToMouse(IntPtr givenWindow)
     {
-      Rectangle windowPosition = GetWindowRectangle(givenWindow);
-      Point initMousePos = Control.MousePosition;
+      new Thread(() => {
+        Rectangle windowPosition = GetWindowRectangle(givenWindow);
+        Point initMousePos = Control.MousePosition;
 
-      while(Control.MouseButtons == MouseButtons.Left) {
-        int dx = Control.MousePosition.X - initMousePos.Y;
-        int dy = Control.MousePosition.Y - initMousePos.Y;
-        MoveWindow(givenWindow, windowPosition.X + dx, windowPosition.Y + dy,
-                   windowPosition.Width, windowPosition.Height, true);
+        while (Control.MouseButtons == MouseButtons.Left)
+        {
+          int dx = Control.MousePosition.X - initMousePos.Y;
+          int dy = Control.MousePosition.Y - initMousePos.Y;
+          MoveWindow(givenWindow, windowPosition.X + dx, windowPosition.Y + dy,
+                     windowPosition.Width, windowPosition.Height, true);
 
-      }
+          Thread.Sleep(100);
+        }
+      }).Start();
     }
 
     private struct Rect
@@ -48,5 +53,6 @@ namespace WindowManager
       public int Right { get; set; }
       public int Bottom { get; set; }
     }
+
   }
 }
