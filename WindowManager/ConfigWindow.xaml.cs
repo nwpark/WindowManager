@@ -58,8 +58,7 @@ namespace WindowManager
       using (Process curProcess = Process.GetCurrentProcess())
       using (ProcessModule curModule = curProcess.MainModule)
       {
-        return SetWindowsHookEx(peripheral, proc,
-                                GetModuleHandle(curModule.ModuleName), 0);
+        return SetWindowsHookEx(peripheral, proc, GetModuleHandle(curModule.ModuleName), 0);
       }
     }
 

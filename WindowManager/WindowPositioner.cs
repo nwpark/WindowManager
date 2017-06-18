@@ -43,7 +43,7 @@ namespace WindowManager
     public Boolean ControlForegroundWindow()
     {
       Rectangle currentPreviewPos = new Rectangle(0, 0, 0, 0);
-      IntPtr foregroundWindow = GetForegroundWindow();
+      IntPtr foregroundWindow = WindowModifier.GetForegroundWindow();
 
       while (Control.MouseButtons == MouseButtons.Left
                     && Control.ModifierKeys == modifier) {
@@ -63,6 +63,7 @@ namespace WindowManager
             }
         }
         Thread.Sleep(100);
+Console.WriteLine(Control.MouseButtons + ", " + Control.ModifierKeys + ", " + modifier + ", " + DateTime.Now);
       }
 
       if (previewWindow.Visible)

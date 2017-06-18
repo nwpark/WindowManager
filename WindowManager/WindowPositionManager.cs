@@ -18,8 +18,6 @@ namespace WindowManager
     [DllImport("user32.dll")]
     private static extern bool SetForegroundWindow(IntPtr hWnd);
 
-    private WindowHelper windowHelper;
-
     private WindowPositioner layout1Positioner;
     private WindowPositioner layout2Positioner;
 
@@ -27,8 +25,6 @@ namespace WindowManager
 
     public WindowPositionManager()
     {
-      windowHelper = new WindowHelper();
-
       int correctionOffset = 7;
       int correctionWidth = correctionOffset * 2;
 
@@ -56,7 +52,7 @@ namespace WindowManager
         if (windowResetPositions.ContainsKey(foregroundWindow))
           ResetWindowPos(foregroundWindow);
 
-        Rectangle foregroundWindowPos = windowHelper.GetWindowRectangle(foregroundWindow);
+        Rectangle foregroundWindowPos = WindowModifier.GetWindowRectangle(foregroundWindow);
 
         Boolean windowMoved = false;
 
@@ -83,7 +79,7 @@ namespace WindowManager
     private Boolean WindowIsMoving()
     {
       IntPtr foregroundWindow = GetForegroundWindow();
-      Rectangle initWindowPos = windowHelper.GetWindowRectangle(foregroundWindow);
+      Rectangle initWindowPos = WindowModifier.GetWindowRectangle(foregroundWindow);
 
       Point initMousePos = Control.MousePosition;
 
@@ -91,7 +87,7 @@ namespace WindowManager
       {
         if (MouseMoved(initMousePos))
         {
-          Rectangle windowPos = windowHelper.GetWindowRectangle(foregroundWindow);
+          Rectangle windowPos = WindowModifier.GetWindowRectangle(foregroundWindow);
 
           return !windowPos.Equals(initWindowPos) && windowPos.Width == initWindowPos.Width 
                                                   && windowPos.Height == initWindowPos.Height;
@@ -105,19 +101,19 @@ namespace WindowManager
 
     public void ResetWindowPos(IntPtr foregroundWindow)
     {
-      Rectangle windowRect = windowHelper.GetWindowRectangle(foregroundWindow);
+      Rectangle windowRect = WindowModifier.GetWindowRectangle(foregroundWindow);
       Rectangle windowResetPos = windowResetPositions[foregroundWindow];
 
       double relativeMouseX = (Control.MousePosition.X - windowRect.Left) / (double)windowRect.Width;
       int newWindowX = Control.MousePosition.X - (int)(relativeMouseX * windowResetPos.Width);
 
-      windowHelper.DropForegroundWindow();
+      WindowModifier.DropForegroundWindow();
       MoveWindow(foregroundWindow,
                  newWindowX, windowRect.Top,
                  windowResetPos.Width, windowResetPos.Height, true);
       SetForegroundWindow(foregroundWindow);
 
-      windowHelper.AttachWindowToMouse(foregroundWindow);
+      WindowModifier.AttachWindowToMouse(foregroundWindow);
       
       windowResetPositions.Remove(foregroundWindow);
     }

@@ -6,8 +6,11 @@ using System.Threading;
 
 namespace WindowManager
 {
-  class WindowHelper
+  class WindowModifier
   {
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetForegroundWindow();
+
     [DllImport("user32.dll")]
     public static extern bool GetWindowRect(IntPtr hwnd, ref Rect lpRect);
 
@@ -17,7 +20,7 @@ namespace WindowManager
     [DllImport("user32.dll")]
     public static extern bool SetForegroundWindow(IntPtr hWnd);
 
-    public Rectangle GetWindowRectangle(IntPtr givenWindow)
+    public static Rectangle GetWindowRectangle(IntPtr givenWindow)
     {
       Rect windowRect = new Rect();
       GetWindowRect(givenWindow, ref windowRect);
@@ -31,7 +34,7 @@ namespace WindowManager
       return windowRectangle;
     }
 
-    public void AttachWindowToMouse(IntPtr givenWindow)
+    public static void AttachWindowToMouse(IntPtr givenWindow)
     {
       new Thread(() => {
         Rectangle windowPosition = GetWindowRectangle(givenWindow);
@@ -49,7 +52,7 @@ namespace WindowManager
       }).Start();
     }
 
-    public void DropForegroundWindow()
+    public static void DropForegroundWindow()
     {
       Form dummyWindow = new Form();
       SetForegroundWindow(dummyWindow.Handle);
